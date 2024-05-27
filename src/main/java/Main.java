@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
+import java.nio.ByteBuffer;
 
 public class Main {
   public static void main(String[] args){
@@ -15,8 +16,16 @@ public class Main {
         final DatagramPacket packet = new DatagramPacket(buf, buf.length);
         serverSocket.receive(packet);
         System.out.println("Received data");
-    
-        final byte[] bufResponse = new byte[512];
+        
+        ByteBuffer byteBuffer = ByteBuffer.allocate(512);
+        byteBuffer.putShort((short)1234);
+        byteBuffer.putShort((short)0x8000);
+        byteBuffer.putShort((short)0);
+        byteBuffer.putShort((short)0);
+        byteBuffer.putShort((short)0);
+        byteBuffer.putShort((short)0);
+        
+        final byte[] bufResponse = byteBuffer.array();
         final DatagramPacket packetResponse = new DatagramPacket(bufResponse, bufResponse.length, packet.getSocketAddress());
         serverSocket.send(packetResponse);
       }

@@ -17,29 +17,56 @@ public class Main {
         serverSocket.receive(packet);
         System.out.println("Received data");
 
+        ByteBuffer requestBuffer = ByteBuffer.wrap(packet.getData());
+
+        // Parse the header from the request
+        short id = requestBuffer.getShort(); // ID
+        short flags = requestBuffer.getShort(); // Flags
+        short qdcount = requestBuffer.getShort(); // Number of questions
+        short ancount = requestBuffer.getShort(); // Number of answers
+        short nscount = requestBuffer.getShort(); // Number of authority records
+        short arcount = requestBuffer.getShort(); // Number of additional records
+
+        // Extract QR, OPCODE, and RD from flags
+        int qr = 1; // Response
+        int opcode = (flags >> 11) & 0xF; // OPCODE
+        int aa = 0; // Not authoritative
+        int tc = 0; // Not truncated
+        int rd = (flags >> 8) & 0x1; // Recursion Desired
+        int ra = 0; // Recursion not available
+        int z = 0; // Reserved
+        int rcode = (opcode == 0) ? 0 : 4; // No error if standard query, else not implemented
+
+        short responseFlags = (short) ((qr << 15) | (opcode << 11) | (aa << 10) | (tc << 9) | (rd << 8) | (ra << 7) | (z << 4) | rcode);
+
         ByteBuffer byteBuffer = ByteBuffer.allocate(512);
-        
+
         // DNS Header
-        byteBuffer.putShort((short)1234); // ID
-        byteBuffer.putShort((short)0x8000); // Flags
-        byteBuffer.putShort((short)1); // QDCount - 1 question
-        byteBuffer.putShort((short)1); // answers
-        byteBuffer.putShort((short)0); // authority records
-        byteBuffer.putShort((short)0); // additional records
+        byteBuffer.putShort(id); // ID from request
+        byteBuffer.putShort(responseFlags); // Flags
+        byteBuffer.putShort(qdcount); // QDCOUNT 
+        byteBuffer.putShort((short) 1); // ANCOUNT (1 answer)
+        byteBuffer.putShort(nscount); // NSCOUNT 
+        byteBuffer.putShort(arcount); // ARCOUNT 
 
 
-        // Question Section
-        // Name: codecrafters.io
-        byteBuffer.put((byte) 0x0c); // Length of "codecrafters"
-        byteBuffer.put("codecrafters".getBytes());
-        byteBuffer.put((byte) 0x02); // Length of "io"
-        byteBuffer.put("io".getBytes());
-        byteBuffer.put((byte) 0x00); // Null byte to terminate the name
+        // Question Section (copy from request)
+        requestBuffer.position(12);
+        for (int i = 0; i < qdcount; i++) {
+            while (requestBuffer.get() != 0) {
+                requestBuffer.position(requestBuffer.position() - 1);
+                int len = requestBuffer.get() & 0xFF;
+                byteBuffer.put((byte) len);
+                byte[] label = new byte[len];
+                requestBuffer.get(label);
+                byteBuffer.put(label);
+            }
+            byteBuffer.put((byte) 0); // Null byte to terminate the name
 
-        // Type and Class
-        byteBuffer.putShort((short) 1); // Type: A (Host Address)
-        byteBuffer.putShort((short) 1); // Class: IN (Internet)
-
+            // Type and Class
+            byteBuffer.putShort(requestBuffer.getShort()); // Type
+            byteBuffer.putShort(requestBuffer.getShort()); // Class
+        }
 
         // Answer Section
         // Name: codecrafters.io

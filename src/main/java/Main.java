@@ -50,35 +50,44 @@ public class Main {
         byteBuffer.putShort(arcount); // ARCOUNT 
 
 
-        // Question Section (copy from request)
-        requestBuffer.position(12);
+        // Question Section 
         for (int i = 0; i < qdcount; i++) {
-            while (requestBuffer.get() != 0) {
-                requestBuffer.position(requestBuffer.position() - 1);
-                int len = requestBuffer.get() & 0xFF;
-                byteBuffer.put((byte) len);
+          // Read the domain name from the request
+          while (true) {
+              byte len = requestBuffer.get();
+              byteBuffer.put(len);
+              if (len == 0) break; // Null byte indicates the end of the domain name
+              byte[] label = new byte[len];
+              requestBuffer.get(label);
+              byteBuffer.put(label);
+          }
+          // Type and Class
+          short qType = requestBuffer.getShort();
+          short qClass = requestBuffer.getShort();
+          byteBuffer.putShort(qType);
+          byteBuffer.putShort(qClass);
+        }
+
+        // Answer Section
+        // Name: same as the question section
+        requestBuffer.position(12); // Reset position to start of question section
+        for (int i = 0; i < qdcount; i++) {
+            while (true) {
+                byte len = requestBuffer.get();
+                byteBuffer.put(len);
+                if (len == 0) break;
                 byte[] label = new byte[len];
                 requestBuffer.get(label);
                 byteBuffer.put(label);
             }
-            byteBuffer.put((byte) 0); // Null byte to terminate the name
-
-            // Type and Class
-            byteBuffer.putShort(requestBuffer.getShort()); // Type
-            byteBuffer.putShort(requestBuffer.getShort()); // Class
+            // Type and Class (same as question section)
+            short qType = requestBuffer.getShort();
+            short qClass = requestBuffer.getShort();
+            byteBuffer.putShort(qType);
+            byteBuffer.putShort(qClass);
         }
 
-        // Answer Section
-        // Name: codecrafters.io
-        byteBuffer.put((byte) 0x0c); // Length of "codecrafters"
-        byteBuffer.put("codecrafters".getBytes());
-        byteBuffer.put((byte) 0x02); // Length of "io"
-        byteBuffer.put("io".getBytes());
-        byteBuffer.put((byte) 0x00); // Null byte to terminate the name
-
-        // Type, Class, TTL, Length, and Data for Answer
-        byteBuffer.putShort((short) 1); // Type: A (Host Address)
-        byteBuffer.putShort((short) 1); // Class: IN (Internet)
+        
         byteBuffer.putInt(60); // TTL: 60 seconds
         byteBuffer.putShort((short) 4); // RDLENGTH: 4 bytes
         byteBuffer.put(new byte[] {(byte) 8, (byte) 8, (byte) 8, (byte) 8}); // RDATA: IP address 8.8.8.8

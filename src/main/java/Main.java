@@ -23,7 +23,7 @@ public class Main {
         byteBuffer.putShort((short)1234); // ID
         byteBuffer.putShort((short)0x8000); // Flags
         byteBuffer.putShort((short)1); // QDCount - 1 question
-        byteBuffer.putShort((short)0); // answers
+        byteBuffer.putShort((short)1); // answers
         byteBuffer.putShort((short)0); // authority records
         byteBuffer.putShort((short)0); // additional records
 
@@ -39,6 +39,23 @@ public class Main {
         // Type and Class
         byteBuffer.putShort((short) 1); // Type: A (Host Address)
         byteBuffer.putShort((short) 1); // Class: IN (Internet)
+
+
+        // Answer Section
+        // Name: codecrafters.io
+        byteBuffer.put((byte) 0x0c); // Length of "codecrafters"
+        byteBuffer.put("codecrafters".getBytes());
+        byteBuffer.put((byte) 0x02); // Length of "io"
+        byteBuffer.put("io".getBytes());
+        byteBuffer.put((byte) 0x00); // Null byte to terminate the name
+
+        // Type, Class, TTL, Length, and Data for Answer
+        byteBuffer.putShort((short) 1); // Type: A (Host Address)
+        byteBuffer.putShort((short) 1); // Class: IN (Internet)
+        byteBuffer.putInt(60); // TTL: 60 seconds
+        byteBuffer.putShort((short) 4); // RDLENGTH: 4 bytes
+        byteBuffer.put(new byte[] {(byte) 8, (byte) 8, (byte) 8, (byte) 8}); // RDATA: IP address 8.8.8.8
+
         
         final byte[] bufResponse = byteBuffer.array();
         final DatagramPacket packetResponse = new DatagramPacket(bufResponse, bufResponse.length, packet.getSocketAddress());
